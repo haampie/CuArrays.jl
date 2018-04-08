@@ -28,6 +28,7 @@ include("blas/CUBLAS.jl")
 include("solver/CUSOLVER.jl")
 include("fft/CUFFT.jl")
 include("gpuarray_interface.jl")
+include("broadcast.jl")
 
 cudnn_available() = libcudnn ≠ nothing
 if cudnn_available()

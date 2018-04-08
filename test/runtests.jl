@@ -37,7 +37,7 @@ end
 using Base.Test, GPUArrays.TestSuite
 
 @testset "CuArrays" begin
-@testset "GPUArray Testsuite: $(CUDAnative.default_device[])" begin
+@testset "GPUArray Testsuite:" begin
     TestSuite.run_gpuinterface(CuArray)
     TestSuite.run_base(CuArray)
     TestSuite.run_blas(CuArray)
