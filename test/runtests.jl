@@ -153,6 +153,7 @@ end
 
 isdefined(CuArrays, :CUDNN)     && include("dnn.jl")
 isdefined(CuArrays, :CUBLAS)    && include("blas.jl")
+isdefined(CuArrays, :CUSPARSE)  && include("sparse.jl")
 isdefined(CuArrays, :CUSOLVER)  && include("solver.jl")
 isdefined(CuArrays, :CUFFT)     && include("fft.jl")
 isdefined(CuArrays, :CURAND)    && include("rand.jl")
