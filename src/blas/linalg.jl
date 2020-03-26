@@ -1,6 +1,8 @@
 # interfacing with LinearAlgebra standard library
 
-cublas_size(t::Char, M::CuVecOrMat) = (size(M, t=='N' ? 1 : 2), size(M, t=='N' ? 2 : 1))
+import ..CuArrays: StridedGPUVector, StridedGPUMatrix, StridedGPUVecOrMat
+
+cublas_size(t::Char, M::StridedGPUVecOrMat) = (size(M, t=='N' ? 1 : 2), size(M, t=='N' ? 2 : 1))
 
 CublasArray{T<:CublasFloat} = CuArray{T}
 
@@ -58,7 +60,7 @@ end
 
 # GEMV
 
-function gemv_wrapper!(y::CuVector{T}, tA::Char, A::CuMatrix{T}, x::CuVector{T},
+function gemv_wrapper!(y::StridedGPUVector{T}, tA::Char, A::StridedGPUVecOrMat{T}, x::StridedGPUVector{T},
                        alpha = one(T), beta = zero(T)) where T<:CublasFloat
     mA, nA = cublas_size(tA, A)
     if nA != length(x)
@@ -81,67 +83,67 @@ function promote_alpha_beta(a, b, ::Type{T}) where {T}
     a_prom, b_prom
 end
 
-LinearAlgebra.mul!(Y::CuVector{T}, A::CuMatrix{T}, B::CuVector{T}, a::Number, b::Number) where T<:CublasFloat = 
+LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::StridedGPUVecOrMat{T}, B::StridedGPUVector{T}, a::Number, b::Number) where T<:CublasFloat = 
     gemv_wrapper!(Y, 'N', A, B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(Y::CuVector{T}, A::Transpose{<:Any, <:CuMatrix{T}}, B::CuVector{T}, a::Number, b::Number) where T<:CublasFloat = 
+LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::Transpose{<:Any, <:StridedGPUVecOrMat{T}}, B::StridedGPUVector{T}, a::Number, b::Number) where T<:CublasFloat = 
     gemv_wrapper!(Y, 'T', A.parent, B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(Y::CuVector{T}, A::Adjoint{<:Any, <:CuMatrix{T}}, B::CuVector{T}, a::Number, b::Number) where T<:CublasReal = 
+LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::Adjoint{<:Any, <:StridedGPUVecOrMat{T}}, B::StridedGPUVector{T}, a::Number, b::Number) where T<:CublasReal = 
     gemv_wrapper!(Y, 'T', A.parent, B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(Y::CuVector{T}, A::Adjoint{<:Any, <:CuMatrix{T}}, B::CuVector{T}, a::Number, b::Number) where T<:CublasComplex = 
+LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::Adjoint{<:Any, <:StridedGPUVecOrMat{T}}, B::StridedGPUVector{T}, a::Number, b::Number) where T<:CublasComplex = 
     gemv_wrapper!(Y, 'C', A.parent, B, promote_alpha_beta(a, b, T)...)
 
 # Fix Julia <= 1.3.1 ambiguities... they're fixed in 1.4.x thanks to https://github.com/JuliaLang/julia/pull/33743
 @static if v"1.3.0" <= VERSION <= v"1.3.1"
-    LinearAlgebra.mul!(Y::CuVector{T}, A::CuMatrix{T}, B::CuVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
+    LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::StridedGPUVecOrMat{T}, B::StridedGPUVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
         gemv_wrapper!(Y, 'N', A, B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(Y::CuVector{T}, A::Transpose{<:Any, <:CuMatrix{T}}, B::CuVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
+    LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::Transpose{<:Any, <:StridedGPUVecOrMat{T}}, B::StridedGPUVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
         gemv_wrapper!(Y, 'T', A.parent, B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(Y::CuVector{T}, A::Adjoint{<:Any, <:CuMatrix{T}}, B::CuVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal = 
+    LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::Adjoint{<:Any, <:StridedGPUVecOrMat{T}}, B::StridedGPUVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal = 
         gemv_wrapper!(Y, 'T', A.parent, B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(Y::CuVector{T}, A::Adjoint{<:Any, <:CuMatrix{T}}, B::CuVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex = 
+    LinearAlgebra.mul!(Y::StridedGPUVector{T}, A::Adjoint{<:Any, <:StridedGPUVecOrMat{T}}, B::StridedGPUVector{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex = 
         gemv_wrapper!(Y, 'C', A.parent, B, promote_alpha_beta(a, b, T)...)
 end
 
 # TRSV
 
 function LinearAlgebra.ldiv!(
-    A::UpperTriangular{T, <:CuMatrix{T}},
-    x::CuVector{T},
+    A::UpperTriangular{T, <:StridedGPUMatrix{T}},
+    x::StridedGPUVector{T},
 ) where T<:CublasFloat
     return CUBLAS.trsv!('U', 'N', 'N', parent(A), x)
 end
 
 function LinearAlgebra.ldiv!(
-    A::Adjoint{T, <:UpperTriangular{T, <:CuMatrix{T}}},
-    x::CuVector{T},
+    A::Adjoint{T, <:UpperTriangular{T, <:StridedGPUMatrix{T}}},
+    x::StridedGPUVector{T},
 ) where {T<:CUBLAS.CublasFloat}
     return CUBLAS.trsv!('U', 'C', 'N', parent(parent(A)), x)
 end
 
 function LinearAlgebra.ldiv!(
-    A::Transpose{T, <:UpperTriangular{T, <:CuMatrix{T}}},
-    x::CuVector{T},
+    A::Transpose{T, <:UpperTriangular{T, <:StridedGPUMatrix{T}}},
+    x::StridedGPUVector{T},
 ) where {T<:CUBLAS.CublasFloat}
     return CUBLAS.trsv!('U', 'T', 'N', parent(parent(A)), x)
 end
 
 function LinearAlgebra.ldiv!(
-    A::LowerTriangular{T, <:CuMatrix{T}},
-    x::CuVector{T},
+    A::LowerTriangular{T, <:StridedGPUMatrix{T}},
+    x::StridedGPUVector{T},
 ) where T<:CublasFloat
     return CUBLAS.trsv!('L', 'N', 'N', parent(A), x)
 end
 
 function LinearAlgebra.ldiv!(
-    A::Adjoint{T, <:LowerTriangular{T, <:CuMatrix{T}}},
-    x::CuVector{T},
+    A::Adjoint{T, <:LowerTriangular{T, <:StridedGPUMatrix{T}}},
+    x::StridedGPUVector{T},
 ) where {T<:CUBLAS.CublasFloat}
     return CUBLAS.trsv!('L', 'C', 'N', parent(parent(A)), x)
 end
 
 function LinearAlgebra.ldiv!(
-    A::Transpose{T, <:LowerTriangular{T, <:CuMatrix{T}}},
-    x::CuVector{T},
+    A::Transpose{T, <:LowerTriangular{T, <:StridedGPUMatrix{T}}},
+    x::StridedGPUVector{T},
 ) where {T<:CUBLAS.CublasFloat}
     return CUBLAS.trsv!('L', 'T', 'N', parent(parent(A)), x)
 end
@@ -181,64 +183,64 @@ function gemm_wrapper!(C::CuVecOrMat{T}, tA::Char, tB::Char,
 end
 
 # Mutating
-LinearAlgebra.mul!(C::CuMatrix{T}, A::CuVecOrMat{T}, B::CuVecOrMat{T}, a::Number, b::Number) where T<:CublasFloat = 
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::CuVecOrMat{T}, B::CuVecOrMat{T}, a::Number, b::Number) where T<:CublasFloat = 
     gemm_wrapper!(C, 'N', 'N', A, B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, B::CuMatrix{T}, a::Number, b::Number) where T<:CublasFloat =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Number, b::Number) where T<:CublasFloat =
     gemm_wrapper!(C, 'T', 'N', parent(trA), B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, A::CuMatrix{T}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Number, b::Number) where T<:CublasFloat =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUMatrix{T}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Number, b::Number) where T<:CublasFloat =
     gemm_wrapper!(C, 'N', 'T', A, parent(trB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Number, b::Number) where T<:CublasFloat =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Number, b::Number) where T<:CublasFloat =
     gemm_wrapper!(C, 'T', 'T', parent(trA), parent(trB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, B::CuMatrix{T}, a::Real, b::Real) where T<:CublasReal =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Real, b::Real) where T<:CublasReal =
     gemm_wrapper!(C, 'T', 'N', parent(adjA), B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, B::CuMatrix{T}, a::Number, b::Number) where T<:CublasComplex =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Number, b::Number) where T<:CublasComplex =
     gemm_wrapper!(C, 'C', 'N', parent(adjA), B, promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, A::CuMatrix{T}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUMatrix{T}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
     gemm_wrapper!(C, 'N', 'T', A, parent(adjB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, A::CuMatrix{T}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Number, b::Number) where T<:CublasComplex =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUMatrix{T}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Number, b::Number) where T<:CublasComplex =
     gemm_wrapper!(C, 'N', 'C', A, parent(adjB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
     gemm_wrapper!(C, 'T', 'T', parent(adjA), parent(adjB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Number, b::Number) where T<:CublasComplex =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Number, b::Number) where T<:CublasComplex =
     gemm_wrapper!(C, 'C', 'C', parent(adjA), parent(adjB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, adjB::Adjoint{T, <:CuMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{T, <:StridedGPUMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
     gemm_wrapper!(C, 'T', 'T', parent(trA), parent(adjB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Number, b::Number) where T<:CublasComplex =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Number, b::Number) where T<:CublasComplex =
     gemm_wrapper!(C, 'T', 'C', parent(trA), parent(adjB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{T, <:CuMatrix{T}}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{T, <:StridedGPUMatrix{T}}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Real, b::Real) where T<:CublasReal =
     gemm_wrapper!(C, 'T', 'T', parent(adjA), parent(trB), promote_alpha_beta(a, b, T)...)
-LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Number, b::Number) where T <: CublasComplex =
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Number, b::Number) where T <: CublasComplex =
     gemm_wrapper!(C, 'C', 'T', parent(adjA), parent(trB), promote_alpha_beta(a, b, T)...)
 
 # Fix Julia <= 1.3.1 ambiguities... they're fixed in 1.4.x thanks to https://github.com/JuliaLang/julia/pull/33743
 @static if v"1.3.0" <= VERSION <= v"1.3.1"
-    LinearAlgebra.mul!(C::CuMatrix{T}, A::CuVecOrMat{T}, B::CuVecOrMat{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::CuVecOrMat{T}, B::CuVecOrMat{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
         gemm_wrapper!(C, 'N', 'N', A, B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, B::CuMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
         gemm_wrapper!(C, 'T', 'N', parent(trA), B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, A::CuMatrix{T}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUMatrix{T}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
         gemm_wrapper!(C, 'N', 'T', A, parent(trB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
         gemm_wrapper!(C, 'T', 'T', parent(trA), parent(trB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, B::CuMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
         gemm_wrapper!(C, 'T', 'N', parent(adjA), B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, B::CuMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
         gemm_wrapper!(C, 'C', 'N', parent(adjA), B, promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, A::CuMatrix{T}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUMatrix{T}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
         gemm_wrapper!(C, 'N', 'T', A, parent(adjB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, A::CuMatrix{T}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUMatrix{T}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
         gemm_wrapper!(C, 'N', 'C', A, parent(adjB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
         gemm_wrapper!(C, 'T', 'T', parent(adjA), parent(adjB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
         gemm_wrapper!(C, 'C', 'C', parent(adjA), parent(adjB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, adjB::Adjoint{T, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{T, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
         gemm_wrapper!(C, 'T', 'T', parent(trA), parent(adjB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, trA::Transpose{<:Any, <:CuMatrix{T}}, adjB::Adjoint{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, adjB::Adjoint{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasComplex =
         gemm_wrapper!(C, 'T', 'C', parent(trA), parent(adjB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{T, <:CuMatrix{T}}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{T, <:StridedGPUMatrix{T}}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasReal =
         gemm_wrapper!(C, 'T', 'T', parent(adjA), parent(trB), promote_alpha_beta(a, b, T)...)
-    LinearAlgebra.mul!(C::CuMatrix{T}, adjA::Adjoint{<:Any, <:CuMatrix{T}}, trB::Transpose{<:Any, <:CuMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T <: CublasComplex =
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatrix{T}}, trB::Transpose{<:Any, <:StridedGPUMatrix{T}}, a::Union{T,Bool}, b::Union{T,Bool}) where T <: CublasComplex =
         gemm_wrapper!(C, 'C', 'T', parent(adjA), parent(trB), promote_alpha_beta(a, b, T)...)
 end
 
@@ -246,58 +248,58 @@ end
 
 # ldiv!
 ## No transpose/adjoint
-LinearAlgebra.ldiv!(A::UpperTriangular{T, <:CuMatrix{T}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::UpperTriangular{T, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'U', 'N', 'N', one(T), parent(A), B)
-LinearAlgebra.ldiv!(A::UnitUpperTriangular{T, <:CuMatrix{T}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::UnitUpperTriangular{T, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'U', 'N', 'U', one(T), parent(A), B)
-LinearAlgebra.ldiv!(A::LowerTriangular{T, <:CuMatrix{T}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::LowerTriangular{T, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'L', 'N', 'N', one(T), parent(A), B)
-LinearAlgebra.ldiv!(A::UnitLowerTriangular{T, <:CuMatrix{T}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::UnitLowerTriangular{T, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'L', 'N', 'U', one(T), parent(A), B)
 ## Adjoint
-LinearAlgebra.ldiv!(A::Adjoint{T,<:UpperTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Adjoint{T,<:UpperTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'U', 'C', 'N', one(T), parent(parent(A)), B)
-LinearAlgebra.ldiv!(A::Adjoint{T,<:UnitUpperTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Adjoint{T,<:UnitUpperTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'U', 'C', 'U', one(T), parent(parent(A)), B)
-LinearAlgebra.ldiv!(A::Adjoint{T,<:LowerTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Adjoint{T,<:LowerTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'L', 'C', 'N', one(T), parent(parent(A)), B)
-LinearAlgebra.ldiv!(A::Adjoint{T,<:UnitLowerTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Adjoint{T,<:UnitLowerTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'L', 'C', 'U', one(T), parent(parent(A)), B)
 ## Transpose
-LinearAlgebra.ldiv!(A::Transpose{T,<:UpperTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Transpose{T,<:UpperTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'U', 'T', 'N', one(T), parent(parent(A)), B)
-LinearAlgebra.ldiv!(A::Transpose{T,<:UnitUpperTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Transpose{T,<:UnitUpperTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'U', 'T', 'U', one(T), parent(parent(A)), B)
-LinearAlgebra.ldiv!(A::Transpose{T,<:LowerTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Transpose{T,<:LowerTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'L', 'T', 'N', one(T), parent(parent(A)), B)
-LinearAlgebra.ldiv!(A::Transpose{T,<:UnitLowerTriangular{T, <:CuMatrix{T}}}, B::CuMatrix{T}) where T<:CublasFloat =
+LinearAlgebra.ldiv!(A::Transpose{T,<:UnitLowerTriangular{T, <:StridedGPUMatrix{T}}}, B::StridedGPUMatrix{T}) where T<:CublasFloat =
     CUBLAS.trsm!('L', 'L', 'T', 'U', one(T), parent(parent(A)), B)
 
 # rdiv!
 ## No transpose/adjoint
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::UpperTriangular{T, <:CuMatrix{T}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::UpperTriangular{T, <:StridedGPUMatrix{T}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'U', 'N', 'N', one(T), parent(B), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::UnitUpperTriangular{T, <:CuMatrix{T}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::UnitUpperTriangular{T, <:StridedGPUMatrix{T}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'U', 'N', 'U', one(T), parent(B), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::LowerTriangular{T, <:CuMatrix{T}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::LowerTriangular{T, <:StridedGPUMatrix{T}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'L', 'N', 'N', one(T), parent(B), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::UnitLowerTriangular{T, <:CuMatrix{T}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::UnitLowerTriangular{T, <:StridedGPUMatrix{T}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'L', 'N', 'U', one(T), parent(B), A)
 ## Adjoint
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Adjoint{T,<:UpperTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Adjoint{T,<:UpperTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'U', 'C', 'N', one(T), parent(parent(B)), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Adjoint{T,<:UnitUpperTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Adjoint{T,<:UnitUpperTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'U', 'C', 'U', one(T), parent(parent(B)), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Adjoint{T,<:LowerTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Adjoint{T,<:LowerTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'L', 'C', 'N', one(T), parent(parent(B)), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Adjoint{T,<:UnitLowerTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Adjoint{T,<:UnitLowerTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'L', 'C', 'U', one(T), parent(parent(B)), A)
 ## Transpose
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Transpose{T,<:UpperTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Transpose{T,<:UpperTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'U', 'T', 'N', one(T), parent(parent(B)), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Transpose{T,<:UnitUpperTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Transpose{T,<:UnitUpperTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'U', 'T', 'U', one(T), parent(parent(B)), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Transpose{T,<:LowerTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Transpose{T,<:LowerTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'L', 'T', 'N', one(T), parent(parent(B)), A)
-LinearAlgebra.rdiv!(A::CuMatrix{T}, B::Transpose{T,<:UnitLowerTriangular{T, <:CuMatrix{T}}}) where T<:CublasFloat =
+LinearAlgebra.rdiv!(A::StridedGPUMatrix{T}, B::Transpose{T,<:UnitLowerTriangular{T, <:StridedGPUMatrix{T}}}) where T<:CublasFloat =
     CUBLAS.trsm!('R', 'L', 'T', 'U', one(T), parent(parent(B)), A)

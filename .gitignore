@@ -4,3 +4,4 @@
 deps/ext.jl
 tutorials/build/
 docs/build/
+*.swp

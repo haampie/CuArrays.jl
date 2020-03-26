@@ -1,7 +1,7 @@
 # integration with LinearAlgebra.jl
 
-CuMatOrAdj{T} = Union{CuMatrix, LinearAlgebra.Adjoint{T, <:CuMatrix{T}}, LinearAlgebra.Transpose{T, <:CuMatrix{T}}}
-CuOrAdj{T} = Union{CuVecOrMat, LinearAlgebra.Adjoint{T, <:CuVecOrMat{T}}, LinearAlgebra.Transpose{T, <:CuVecOrMat{T}}}
+CuMatOrAdj{T} = Union{StridedGPUMatrix, LinearAlgebra.Adjoint{T, <:StridedGPUMatrix{T}}, LinearAlgebra.Transpose{T, <:StridedGPUMatrix{T}}}
+CuOrAdj{T} = Union{StridedGPUVecOrMat, LinearAlgebra.Adjoint{T, <:StridedGPUVecOrMat{T}}, LinearAlgebra.Transpose{T, <:StridedGPUVecOrMat{T}}}
 
 
 # matrix division

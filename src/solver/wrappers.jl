@@ -1,3 +1,5 @@
+import ..CuArrays: StridedGPUMatrix, StridedGPUVector, StridedGPUVecOrMat
+
 # wrappers of low-level functionality
 
 function cusolverGetProperty(property::CUDAapi.libraryPropertyType)
@@ -77,8 +79,8 @@ for (fname, elty, relty) in ((:cusolverSpScsrlsvqr, :Float32, :Float32),
                              (:cusolverSpZcsrlsvqr, :ComplexF64, Float64))
     @eval begin
         function csrlsvqr!(A::CuSparseMatrixCSR{$elty},
-                           b::CuVector{$elty},
-                           x::CuVector{$elty},
+                           b::StridedGPUVector{$elty},
+                           x::StridedGPUVector{$elty},
                            tol::$relty,
                            reorder::Cint,
                            inda::Char)
@@ -115,8 +117,8 @@ for (fname, elty, relty) in ((:cusolverSpScsrlsvchol, :Float32, :Float32),
                              (:cusolverSpZcsrlsvchol, :ComplexF64, Float64))
     @eval begin
         function csrlsvchol!(A::CuSparseMatrixCSR{$elty},
-                             b::CuVector{$elty},
-                             x::CuVector{$elty},
+                             b::StridedGPUVector{$elty},
+                             x::StridedGPUVector{$elty},
                              tol::$relty,
                              reorder::Cint,
                              inda::Char)
@@ -193,7 +195,7 @@ for (fname, elty, relty) in ((:cusolverSpScsreigvsi, :Float32, :Float32),
     @eval begin
         function csreigvsi(A::CuSparseMatrixCSR{$elty},
                            μ_0::$elty,
-                           x_0::CuVector{$elty},
+                           x_0::StridedGPUVector{$elty},
                            tol::$relty,
                            maxite::Cint,
                            inda::Char)
@@ -274,7 +276,7 @@ for (bname, fname,elty) in ((:cusolverDnSpotrf_bufferSize, :cusolverDnSpotrf, :F
                             (:cusolverDnZpotrf_bufferSize, :cusolverDnZpotrf, :ComplexF64))
     @eval begin
         function LinearAlgebra.LAPACK.potrf!(uplo::Char,
-                        A::CuMatrix{$elty})
+                        A::StridedGPUMatrix{$elty})
             cuuplo  = cublasfill(uplo)
             n       = checksquare(A)
             lda     = max(1, stride(A, 2))
@@ -302,8 +304,8 @@ for (fname,elty) in ((:cusolverDnSpotrs, :Float32),
                      (:cusolverDnZpotrs, :ComplexF64))
     @eval begin
         function LinearAlgebra.LAPACK.potrs!(uplo::Char,
-                        A::CuMatrix{$elty},
-                        B::CuVecOrMat{$elty})
+                        A::StridedGPUMatrix{$elty},
+                        B::StridedGPUVecOrMat{$elty})
             cuuplo = cublasfill(uplo)
             n = checksquare(A)
             if size(B, 1) != n
@@ -331,7 +333,7 @@ for (bname, fname,elty) in ((:cusolverDnSgetrf_bufferSize, :cusolverDnSgetrf, :F
                             (:cusolverDnCgetrf_bufferSize, :cusolverDnCgetrf, :ComplexF32),
                             (:cusolverDnZgetrf_bufferSize, :cusolverDnZgetrf, :ComplexF64))
     @eval begin
-        function getrf!(A::CuMatrix{$elty})
+        function getrf!(A::StridedGPUMatrix{$elty})
             m,n     = size(A)
             lda     = max(1, stride(A, 2))
 
@@ -362,7 +364,7 @@ for (bname, fname,elty) in ((:cusolverDnSgeqrf_bufferSize, :cusolverDnSgeqrf, :F
                             (:cusolverDnCgeqrf_bufferSize, :cusolverDnCgeqrf, :ComplexF32),
                             (:cusolverDnZgeqrf_bufferSize, :cusolverDnZgeqrf, :ComplexF64))
     @eval begin
-        function geqrf!(A::CuMatrix{$elty})
+        function geqrf!(A::StridedGPUMatrix{$elty})
             m, n    = size(A)
             lda     = max(1, stride(A, 2))
 
@@ -391,7 +393,7 @@ for (bname, fname,elty) in ((:cusolverDnSsytrf_bufferSize, :cusolverDnSsytrf, :F
                             (:cusolverDnZsytrf_bufferSize, :cusolverDnZsytrf, :ComplexF64))
     @eval begin
         function sytrf!(uplo::Char,
-                        A::CuMatrix{$elty})
+                        A::StridedGPUMatrix{$elty})
             cuuplo = cublasfill(uplo)
             n      = checksquare(A)
             lda = max(1, stride(A, 2))
@@ -424,9 +426,9 @@ for (fname,elty) in ((:cusolverDnSgetrs, :Float32),
                      (:cusolverDnZgetrs, :ComplexF64))
     @eval begin
         function getrs!(trans::Char,
-                        A::CuMatrix{$elty},
-                        ipiv::CuVector{Cint},
-                        B::CuVecOrMat{$elty})
+                        A::StridedGPUMatrix{$elty},
+                        ipiv::StridedGPUVector{Cint},
+                        B::StridedGPUVecOrMat{$elty})
             cutrans = cublasop(trans)
             n = size(A, 1)
             if size(A, 2) != n
@@ -460,9 +462,9 @@ for (bname, fname, elty) in ((:cusolverDnSormqr_bufferSize, :cusolverDnSormqr, :
     @eval begin
         function ormqr!(side::Char,
                         trans::Char,
-                        A::CuMatrix{$elty},
-                        tau::CuVector{$elty},
-                        C::CuVecOrMat{$elty})
+                        A::StridedGPUMatrix{$elty},
+                        tau::StridedGPUVector{$elty},
+                        C::StridedGPUVecOrMat{$elty})
             cutrans = cublasop(trans)
             cuside  = cublasside(side)
             if side == 'L'
@@ -509,7 +511,7 @@ for (bname, fname, elty) in ((:cusolverDnSorgqr_bufferSize, :cusolverDnSorgqr, :
                              (:cusolverDnCungqr_bufferSize, :cusolverDnCungqr, :ComplexF32),
                              (:cusolverDnZungqr_bufferSize, :cusolverDnZungqr, :ComplexF64))
     @eval begin
-        function orgqr!(A::CuMatrix{$elty}, tau::CuVector{$elty})
+        function orgqr!(A::StridedGPUMatrix{$elty}, tau::StridedGPUVector{$elty})
             m = size(A , 1)
             n = min(m, size(A, 2))
             lda = max(1, stride(A, 2))
@@ -543,7 +545,7 @@ for (bname, fname, elty, relty) in ((:cusolverDnSgebrd_bufferSize, :cusolverDnSg
                                     (:cusolverDnCgebrd_bufferSize, :cusolverDnCgebrd, :ComplexF32, :Float32),
                                     (:cusolverDnZgebrd_bufferSize, :cusolverDnZgebrd, :ComplexF64, :Float64))
     @eval begin
-        function gebrd!(A::CuMatrix{$elty})
+        function gebrd!(A::StridedGPUMatrix{$elty})
             m, n    = size(A)
             lda     = max(1, stride(A, 2))
 
@@ -577,7 +579,7 @@ for (bname, fname, elty, relty) in ((:cusolverDnSgesvd_bufferSize, :cusolverDnSg
     @eval begin
         function gesvd!(jobu::Char,
                         jobvt::Char,
-                        A::CuMatrix{$elty})
+                        A::StridedGPUMatrix{$elty})
             m, n    = size(A)
             if m < n
                 throw(ArgumentError("CUSOLVER's gesvd currently requires m >= n"))
@@ -632,7 +634,7 @@ for (bname, fname, elty, relty) in ((:cusolverDnSgesvdj_bufferSize, :cusolverDnS
     @eval begin
         function gesvdj!(jobz::Char,
                          econ::Int,
-                         A::CuMatrix{$elty};
+                         A::StridedGPUMatrix{$elty};
                          tol::$relty=eps($relty),
                          max_sweeps::Int=100)
             cujobz  = cusolverjob(jobz)
@@ -691,7 +693,7 @@ for (jname, bname, fname, elty, relty) in ((:syevd!, :cusolverDnSsyevd_bufferSiz
     @eval begin
         function $jname(jobz::Char,
                         uplo::Char,
-                        A::CuMatrix{$elty})
+                        A::StridedGPUMatrix{$elty})
             cuuplo  = cublasfill(uplo)
             cujobz  = cusolverjob(jobz)
             n       = checksquare(A)
@@ -730,8 +732,8 @@ for (jname, bname, fname, elty, relty) in ((:sygvd!, :cusolverDnSsygvd_bufferSiz
         function $jname(itype::Int,
                         jobz::Char,
                         uplo::Char,
-                        A::CuMatrix{$elty},
-                        B::CuMatrix{$elty})
+                        A::StridedGPUMatrix{$elty},
+                        B::StridedGPUMatrix{$elty})
             cuuplo  = cublasfill(uplo)
             cujobz  = cusolverjob(jobz)
             nA, nB  = checksquare(A, B)
@@ -777,8 +779,8 @@ for (jname, bname, fname, elty, relty) in ((:sygvj!, :cusolverDnSsygvj_bufferSiz
         function $jname(itype::Int,
                         jobz::Char,
                         uplo::Char,
-                        A::CuMatrix{$elty},
-                        B::CuMatrix{$elty};
+                        A::StridedGPUMatrix{$elty},
+                        B::StridedGPUMatrix{$elty};
                         tol::$relty=eps($relty),
                         max_sweeps::Int=100)
             cujobz  = cusolverjob(jobz)

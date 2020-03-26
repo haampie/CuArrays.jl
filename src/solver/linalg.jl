@@ -12,7 +12,7 @@ struct CuQR{T,S<:AbstractMatrix} <: LinearAlgebra.Factorization{T}
 end
 
 struct CuQRPackedQ{T,S<:AbstractMatrix} <: LinearAlgebra.AbstractQ{T}
-    factors::CuMatrix{T}
+    factors::S
     τ::CuVector{T}
     CuQRPackedQ{T,S}(factors::AbstractMatrix{T}, τ::CuVector{T}) where {T,S<:AbstractMatrix} = new(factors, τ)
 end
@@ -20,7 +20,7 @@ end
 CuQR(factors::AbstractMatrix{T}, τ::CuVector{T}) where {T} = CuQR{T,typeof(factors)}(factors, τ)
 CuQRPackedQ(factors::AbstractMatrix{T}, τ::CuVector{T}) where {T} = CuQRPackedQ{T,typeof(factors)}(factors, τ)
 
-LinearAlgebra.qr!(A::CuMatrix{T}) where T = CuQR(geqrf!(A::CuMatrix{T})...)
+LinearAlgebra.qr!(A::StridedGPUMatrix{T}) where T = CuQR(geqrf!(A::StridedGPUMatrix{T})...)
 Base.size(A::CuQR) = size(A.factors)
 Base.size(A::CuQRPackedQ, dim::Integer) = 0 < dim ? (dim <= 2 ? size(A.factors, 1) : 1) : throw(BoundsError())
 CuArrays.CuMatrix(A::CuQRPackedQ) = orgqr!(copy(A.factors), A.τ)
@@ -44,13 +44,13 @@ Base.iterate(S::CuQR, ::Val{:R}) = (S.R, Val(:done))
 Base.iterate(S::CuQR, ::Val{:done}) = nothing
 
 # Apply changes Q from the left
-LinearAlgebra.lmul!(A::CuQRPackedQ{T,S}, B::CuVecOrMat{T}) where {T<:Number, S<:CuMatrix} =
+LinearAlgebra.lmul!(A::CuQRPackedQ{T,S}, B::StridedGPUVecOrMat{T}) where {T<:Number, S<:StridedGPUMatrix} =
     ormqr!('L', 'N', A.factors, A.τ, B)
-LinearAlgebra.lmul!(adjA::Adjoint{T,<:CuQRPackedQ{T,S}}, B::CuVecOrMat{T}) where {T<:Real, S<:CuMatrix} =
+LinearAlgebra.lmul!(adjA::Adjoint{T,<:CuQRPackedQ{T,S}}, B::StridedGPUVecOrMat{T}) where {T<:Real, S<:StridedGPUMatrix} =
     ormqr!('L', 'T', parent(adjA).factors, parent(adjA).τ, B)
-LinearAlgebra.lmul!(adjA::Adjoint{T,<:CuQRPackedQ{T,S}}, B::CuVecOrMat{T}) where {T<:Complex, S<:CuMatrix} =
+LinearAlgebra.lmul!(adjA::Adjoint{T,<:CuQRPackedQ{T,S}}, B::StridedGPUVecOrMat{T}) where {T<:Complex, S<:StridedGPUMatrix} =
     ormqr!('L', 'C', parent(adjA).factors, parent(adjA).τ, B)
-LinearAlgebra.lmul!(trA::Transpose{T,<:CuQRPackedQ{T,S}}, B::CuVecOrMat{T}) where {T<:Number, S<:CuMatrix} =
+LinearAlgebra.lmul!(trA::Transpose{T,<:CuQRPackedQ{T,S}}, B::StridedGPUVecOrMat{T}) where {T<:Number, S<:StridedGPUMatrix} =
     ormqr!('L', 'T', parent(trA).factors, parent(trA).τ, B)
 
 function Base.getindex(A::CuQRPackedQ{T, S}, i::Integer, j::Integer) where {T, S}
