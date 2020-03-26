@@ -794,10 +794,10 @@ for (fname, elty) in
         function gemm!(transA::Char,
                        transB::Char,
                        alpha::($elty),
-                       A::CuVecOrMat{$elty},
-                       B::CuVecOrMat{$elty},
+                       A::StridedGPUVecOrMat{$elty},
+                       B::StridedGPUVecOrMat{$elty},
                        beta::($elty),
-                       C::CuVecOrMat{$elty})
+                       C::StridedGPUVecOrMat{$elty})
             m = size(A, transA == 'N' ? 1 : 2)
             k = size(A, transA == 'N' ? 2 : 1)
             n = size(B, transB == 'N' ? 2 : 1)
@@ -1048,7 +1048,7 @@ for (fname, elty) in ((:cublasDsyrk_v2,:Float64),
        function syrk!(uplo::Char,
                       trans::Char,
                       alpha::($elty),
-                      A::CuVecOrMat{$elty},
+                      A::StridedGPUVecOrMat{$elty},
                       beta::($elty),
                       C::StridedGPUMatrix{$elty})
            cuuplo = cublasfill(uplo)
@@ -1068,12 +1068,12 @@ end
 function syrk(uplo::Char,
               trans::Char,
               alpha::Number,
-              A::CuVecOrMat)
+              A::StridedGPUVecOrMat)
     T = eltype(A)
     n = size(A, trans == 'N' ? 1 : 2)
     syrk!(uplo, trans, convert(T,alpha), A, zero(T), similar(A, T, (n, n)))
 end
-syrk(uplo::Char, trans::Char, A::CuVecOrMat) = syrk(uplo, trans,
+syrk(uplo::Char, trans::Char, A::StridedGPUVecOrMat) = syrk(uplo, trans,
                                                               one(eltype(A)),
                                                               A)
 
@@ -1090,8 +1090,8 @@ for (fname, elty) in ((:cublasDsyrkx,:Float64),
        function syrkx!(uplo::Char,
                       trans::Char,
                       alpha::($elty),
-                      A::CuVecOrMat{$elty},
-                      B::CuVecOrMat{$elty},
+                      A::StridedGPUVecOrMat{$elty},
+                      B::StridedGPUVecOrMat{$elty},
                       beta::($elty),
                       C::StridedGPUMatrix{$elty})
            cuuplo = cublasfill(uplo)
@@ -1112,14 +1112,14 @@ end
 function syrkx(uplo::Char,
               trans::Char,
               alpha::Number,
-              A::CuVecOrMat,
+              A::StridedGPUVecOrMat,
               beta::Number,
-              B::CuVecOrMat)
+              B::StridedGPUVecOrMat)
     T = eltype(A)
     n = size(A, trans == 'N' ? 1 : 2)
     syrkx!(uplo, trans, convert(T,alpha), A, B, convert(T,beta), similar(A, T, (n, n)))
 end
-syrkx(uplo::Char, trans::Char, A::CuVecOrMat, B::CuVecOrMat) = syrkx(uplo, trans,
+syrkx(uplo::Char, trans::Char, A::StridedGPUVecOrMat, B::StridedGPUVecOrMat) = syrkx(uplo, trans,
                                                                  one(eltype(A)), A,
                                                                  zero(eltype(B)), B)
 
@@ -1181,7 +1181,7 @@ for (fname, elty) in ((:cublasZherk_v2,:ComplexF64),
        function herk!(uplo::Char,
                       trans::Char,
                       alpha::($elty),
-                      A::CuVecOrMat{$elty},
+                      A::StridedGPUVecOrMat{$elty},
                       beta::($elty),
                       C::StridedGPUMatrix{$elty})
            cuuplo = cublasfill(uplo)
@@ -1196,11 +1196,11 @@ for (fname, elty) in ((:cublasZherk_v2,:ComplexF64),
            $fname(handle(), cuuplo, cutrans, n, k, [alpha], A, lda, [beta], C, ldc)
            C
        end
-       function herk(uplo::Char, trans::Char, alpha::($elty), A::CuVecOrMat{$elty})
+       function herk(uplo::Char, trans::Char, alpha::($elty), A::StridedGPUVecOrMat{$elty})
            n = size(A, trans == 'N' ? 1 : 2)
            herk!(uplo, trans, alpha, A, zero($elty), similar(A, $elty, (n,n)))
        end
-       herk(uplo::Char, trans::Char, A::CuVecOrMat{$elty}) = herk(uplo, trans, one($elty), A)
+       herk(uplo::Char, trans::Char, A::StridedGPUVecOrMat{$elty}) = herk(uplo, trans, one($elty), A)
    end
 end
 
@@ -1222,8 +1222,8 @@ for (fname, elty) in ((:cublasDsyr2k_v2,:Float64),
         function syr2k!(uplo::Char,
                         trans::Char,
                         alpha::($elty),
-                        A::CuVecOrMat{$elty},
-                        B::CuVecOrMat{$elty},
+                        A::StridedGPUVecOrMat{$elty},
+                        B::StridedGPUVecOrMat{$elty},
                         beta::($elty),
                         C::StridedGPUMatrix{$elty})
             # TODO: check size of B in julia (syr2k!)
@@ -1249,13 +1249,13 @@ end
 function syr2k(uplo::Char,
                trans::Char,
                alpha::Number,
-               A::CuVecOrMat,
-               B::CuVecOrMat)
+               A::StridedGPUVecOrMat,
+               B::StridedGPUVecOrMat)
     T = eltype(A)
     n = size(A, trans == 'N' ? 1 : 2)
     syr2k!(uplo, trans, convert(T,alpha), A, B, zero(T), similar(A, T, (n, n)))
 end
-syr2k(uplo::Char, trans::Char, A::CuVecOrMat, B::CuVecOrMat) = syr2k(uplo, trans, one(eltype(A)), A, B)
+syr2k(uplo::Char, trans::Char, A::StridedGPUVecOrMat, B::StridedGPUVecOrMat) = syr2k(uplo, trans, one(eltype(A)), A, B)
 
 ## her2k
 for (fname, elty1, elty2) in ((:cublasZher2k_v2,:ComplexF64,:Float64),
@@ -1270,8 +1270,8 @@ for (fname, elty1, elty2) in ((:cublasZher2k_v2,:ComplexF64,:Float64),
        function her2k!(uplo::Char,
                        trans::Char,
                        alpha::($elty1),
-                       A::CuVecOrMat{$elty1},
-                       B::CuVecOrMat{$elty1},
+                       A::StridedGPUVecOrMat{$elty1},
+                       B::StridedGPUVecOrMat{$elty1},
                        beta::($elty2),
                        C::StridedGPUMatrix{$elty1})
            # TODO: check size of B in julia (her2k!)
@@ -1296,15 +1296,15 @@ for (fname, elty1, elty2) in ((:cublasZher2k_v2,:ComplexF64,:Float64),
        function her2k(uplo::Char,
                       trans::Char,
                       alpha::($elty1),
-                      A::CuVecOrMat{$elty1},
-                      B::CuVecOrMat{$elty1})
+                      A::StridedGPUVecOrMat{$elty1},
+                      B::StridedGPUVecOrMat{$elty1})
            n = size(A, trans == 'N' ? 1 : 2)
            her2k!(uplo, trans, alpha, A, B, zero($elty2), similar(A, $elty1, (n,n)))
        end
        her2k(uplo::Char,
              trans::Char,
-             A::CuVecOrMat{$elty1},
-             B::CuVecOrMat{$elty1}) = her2k(uplo, trans, one($elty1), A, B)
+             A::StridedGPUVecOrMat{$elty1},
+             B::StridedGPUVecOrMat{$elty1}) = her2k(uplo, trans, one($elty1), A, B)
    end
 end
 
@@ -1799,10 +1799,10 @@ for (fname, elty) in
         function xt_gemm!(transA::Char,
                        transB::Char,
                        alpha::($elty),
-                       A::Union{CuVecOrMat{$elty}, VecOrMat{$elty}},
-                       B::Union{CuVecOrMat{$elty}, VecOrMat{$elty}},
+                       A::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}},
+                       B::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}},
                        beta::($elty),
-                       C::Union{CuVecOrMat{$elty}, VecOrMat{$elty}})
+                       C::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}})
             m = size(A, transA == 'N' ? 1 : 2)
             k = size(A, transA == 'N' ? 2 : 1)
             n = size(B, transB == 'N' ? 2 : 1)
@@ -1820,16 +1820,16 @@ for (fname, elty) in
         function xt_gemm(transA::Char,
                       transB::Char,
                       alpha::($elty),
-                      A::Union{CuVecOrMat{$elty}, VecOrMat{$elty}},
-                      B::Union{CuVecOrMat{$elty}, VecOrMat{$elty}})
+                      A::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}},
+                      B::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}})
             xt_gemm!(transA, transB, alpha, A, B, zero($elty),
                   similar(B, $elty, (size(A, transA == 'N' ? 1 : 2),
                                      size(B, transB == 'N' ? 2 : 1))))
         end
         function xt_gemm(transA::Char,
                       transB::Char,
-                      A::Union{CuVecOrMat{$elty}, VecOrMat{$elty}},
-                      B::Union{CuVecOrMat{$elty}, VecOrMat{$elty}})
+                      A::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}},
+                      B::Union{StridedGPUVecOrMat{$elty}, VecOrMat{$elty}})
             xt_gemm(transA, transB, one($elty), A, B)
         end
     end
@@ -1944,7 +1944,7 @@ for (fname, elty) in ((:cublasXtDsyrk,:Float64),
        function xt_syrk!(uplo::Char,
                       trans::Char,
                       alpha::($elty),
-                      A::Union{VecOrMat{$elty}, CuVecOrMat{$elty}},
+                      A::Union{VecOrMat{$elty}, StridedGPUVecOrMat{$elty}},
                       beta::($elty),
                       C::Union{Matrix{$elty}, StridedGPUMatrix{$elty}})
            cuuplo = cublasfill(uplo)
@@ -1964,12 +1964,12 @@ end
 function xt_syrk(uplo::Char,
               trans::Char,
               alpha::Number,
-              A::Union{VecOrMat, CuVecOrMat})
+              A::Union{VecOrMat, StridedGPUVecOrMat})
     T = eltype(A)
     n = size(A, trans == 'N' ? 1 : 2)
     xt_syrk!(uplo, trans, convert(T,alpha), A, zero(T), similar(A, T, (n, n)))
 end
-xt_syrk(uplo::Char, trans::Char, A::Union{VecOrMat, CuVecOrMat}) = xt_syrk(uplo, trans, one(eltype(A)), A)
+xt_syrk(uplo::Char, trans::Char, A::Union{VecOrMat, StridedGPUVecOrMat}) = xt_syrk(uplo, trans, one(eltype(A)), A)
 
 for (fname, elty) in ((:cublasXtDsyrkx,:Float64),
                       (:cublasXtSsyrkx,:Float32),
@@ -1984,8 +1984,8 @@ for (fname, elty) in ((:cublasXtDsyrkx,:Float64),
        function xt_syrkx!(uplo::Char,
                       trans::Char,
                       alpha::($elty),
-                      A::Union{VecOrMat{$elty}, CuVecOrMat{$elty}},
-                      B::Union{VecOrMat{$elty}, CuVecOrMat{$elty}},
+                      A::Union{VecOrMat{$elty}, StridedGPUVecOrMat{$elty}},
+                      B::Union{VecOrMat{$elty}, StridedGPUVecOrMat{$elty}},
                       beta::($elty),
                       C::Union{Matrix{$elty}, StridedGPUMatrix{$elty}})
            cuuplo = cublasfill(uplo)
@@ -2006,14 +2006,14 @@ end
 function xt_syrkx(uplo::Char,
               trans::Char,
               alpha::Number,
-              A::Union{VecOrMat, CuVecOrMat},
-              B::Union{VecOrMat, CuVecOrMat},
+              A::Union{VecOrMat, StridedGPUVecOrMat},
+              B::Union{VecOrMat, StridedGPUVecOrMat},
               beta::Number)
     T = eltype(A)
     n = size(A, trans == 'N' ? 1 : 2)
     xt_syrkx!(uplo, trans, convert(T,alpha), A, B, convert(T,beta), similar(A, T, (n, n)))
 end
-xt_syrkx(uplo::Char, trans::Char, A::Union{VecOrMat, CuVecOrMat}, B::Union{VecOrMat, CuVecOrMat}) = xt_syrkx(uplo, trans,
+xt_syrkx(uplo::Char, trans::Char, A::Union{VecOrMat, StridedGPUVecOrMat}, B::Union{VecOrMat, StridedGPUVecOrMat}) = xt_syrkx(uplo, trans,
                                                                  one(eltype(A)), A, B,
                                                                  zero(eltype(B)))
 
@@ -2028,7 +2028,7 @@ for (fname, elty) in ((:cublasXtZherk,:ComplexF64),
        function xt_herk!(uplo::Char,
                       trans::Char,
                       alpha::($elty),
-                      A::Union{VecOrMat{$elty}, CuVecOrMat{$elty}},
+                      A::Union{VecOrMat{$elty}, StridedGPUVecOrMat{$elty}},
                       beta::($elty),
                       C::Union{Matrix{$elty}, StridedGPUMatrix{$elty}})
            cuuplo = cublasfill(uplo)
@@ -2043,11 +2043,11 @@ for (fname, elty) in ((:cublasXtZherk,:ComplexF64),
            $fname(xt_handle(), cuuplo, cutrans, n, k, [alpha], A, lda, [beta], C, ldc)
            C
        end
-       function xt_herk(uplo::Char, trans::Char, alpha::($elty), A::Union{VecOrMat{$elty}, CuVecOrMat{$elty}})
+       function xt_herk(uplo::Char, trans::Char, alpha::($elty), A::Union{VecOrMat{$elty}, StridedGPUVecOrMat{$elty}})
            n = size(A, trans == 'N' ? 1 : 2)
            xt_herk!(uplo, trans, alpha, A, zero($elty), similar(A, $elty, (n,n)))
        end
-       xt_herk(uplo::Char, trans::Char, A::Union{VecOrMat{$elty}, CuVecOrMat{$elty}}) = xt_herk(uplo, trans, one($elty), A)
+       xt_herk(uplo::Char, trans::Char, A::Union{VecOrMat{$elty}, StridedGPUVecOrMat{$elty}}) = xt_herk(uplo, trans, one($elty), A)
    end
 end
 
@@ -2063,8 +2063,8 @@ for (fname, elty1, elty2) in ((:cublasXtZher2k,:ComplexF64,:Float64),
        function xt_her2k!(uplo::Char,
                        trans::Char,
                        alpha::($elty1),
-                       A::Union{VecOrMat{$elty1}, CuVecOrMat{$elty1}},
-                       B::Union{VecOrMat{$elty1}, CuVecOrMat{$elty1}},
+                       A::Union{VecOrMat{$elty1}, StridedGPUVecOrMat{$elty1}},
+                       B::Union{VecOrMat{$elty1}, StridedGPUVecOrMat{$elty1}},
                        beta::($elty2),
                        C::Union{Matrix{$elty1}, StridedGPUMatrix{$elty1}})
            # TODO: check size of B in julia (her2k!)
@@ -2089,15 +2089,15 @@ for (fname, elty1, elty2) in ((:cublasXtZher2k,:ComplexF64,:Float64),
        function xt_her2k(uplo::Char,
                       trans::Char,
                       alpha::($elty1),
-                      A::Union{VecOrMat{$elty1}, CuVecOrMat{$elty1}},
-                      B::Union{VecOrMat{$elty1}, CuVecOrMat{$elty1}})
+                      A::Union{VecOrMat{$elty1}, StridedGPUVecOrMat{$elty1}},
+                      B::Union{VecOrMat{$elty1}, StridedGPUVecOrMat{$elty1}})
            n = size(A, trans == 'N' ? 1 : 2)
            xt_her2k!(uplo, trans, alpha, A, B, zero($elty2), similar(A, $elty1, (n,n)))
        end
        xt_her2k(uplo::Char,
              trans::Char,
-             A::Union{VecOrMat{$elty1}, CuVecOrMat{$elty1}},
-             B::Union{VecOrMat{$elty1}, CuVecOrMat{$elty1}}) = xt_her2k(uplo, trans, one($elty1), A, B)
+             A::Union{VecOrMat{$elty1}, StridedGPUVecOrMat{$elty1}},
+             B::Union{VecOrMat{$elty1}, StridedGPUVecOrMat{$elty1}}) = xt_her2k(uplo, trans, one($elty1), A, B)
    end
 end
 

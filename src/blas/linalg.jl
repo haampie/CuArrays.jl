@@ -156,9 +156,9 @@ end
 
 # GEMM
 
-function gemm_wrapper!(C::CuVecOrMat{T}, tA::Char, tB::Char,
-                   A::CuVecOrMat{T},
-                   B::CuVecOrMat{T},
+function gemm_wrapper!(C::StridedGPUVecOrMat{T}, tA::Char, tB::Char,
+                   A::StridedGPUVecOrMat{T},
+                   B::StridedGPUVecOrMat{T},
                    alpha = one(T),
                    beta = zero(T)) where T <: CublasFloat
     mA, nA = cublas_size(tA, A)
@@ -183,7 +183,7 @@ function gemm_wrapper!(C::CuVecOrMat{T}, tA::Char, tB::Char,
 end
 
 # Mutating
-LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::CuVecOrMat{T}, B::CuVecOrMat{T}, a::Number, b::Number) where T<:CublasFloat = 
+LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUVecOrMat{T}, B::StridedGPUVecOrMat{T}, a::Number, b::Number) where T<:CublasFloat = 
     gemm_wrapper!(C, 'N', 'N', A, B, promote_alpha_beta(a, b, T)...)
 LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Number, b::Number) where T<:CublasFloat =
     gemm_wrapper!(C, 'T', 'N', parent(trA), B, promote_alpha_beta(a, b, T)...)
@@ -214,7 +214,7 @@ LinearAlgebra.mul!(C::StridedGPUMatrix{T}, adjA::Adjoint{<:Any, <:StridedGPUMatr
 
 # Fix Julia <= 1.3.1 ambiguities... they're fixed in 1.4.x thanks to https://github.com/JuliaLang/julia/pull/33743
 @static if v"1.3.0" <= VERSION <= v"1.3.1"
-    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::CuVecOrMat{T}, B::CuVecOrMat{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
+    LinearAlgebra.mul!(C::StridedGPUMatrix{T}, A::StridedGPUVecOrMat{T}, B::StridedGPUVecOrMat{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat = 
         gemm_wrapper!(C, 'N', 'N', A, B, promote_alpha_beta(a, b, T)...)
     LinearAlgebra.mul!(C::StridedGPUMatrix{T}, trA::Transpose{<:Any, <:StridedGPUMatrix{T}}, B::StridedGPUMatrix{T}, a::Union{T,Bool}, b::Union{T,Bool}) where T<:CublasFloat =
         gemm_wrapper!(C, 'T', 'N', parent(trA), B, promote_alpha_beta(a, b, T)...)
